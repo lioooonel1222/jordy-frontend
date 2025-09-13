@@ -10,26 +10,40 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No message" }, { status: 400 });
     }
 
-    // einfache Routing-Heuristik: lange/„Essay“-Prompts → Claude, sonst GPT
-    const useClaude =
+    const forceGPT = message.trim().toLowerCase().startsWith("!gpt ");
+    const forceClaude = message.trim().toLowerCase().startsWith("!claude ");
+
+    // Default-Heuristik (wenn nicht erzwungen):
+    const heuristicClaude =
       message.length > 300 || /essay|aufsatz|analyse|bericht/i.test(message);
 
+    // Provider bestimmen
+    const useClaude = forceClaude || (!forceGPT && heuristicClaude);
     let reply = "";
-    let modelUsed: "gpt" | "claude" = "gpt";
+    let modelUsed: "gpt" | "claude" = useClaude ? "claude" : "gpt";
 
     if (useClaude) {
+      const key = process.env.ANTHROPIC_API_KEY;
+      if (!key) {
+        return NextResponse.json(
+          { error: "ANTHROPIC_API_KEY missing" },
+          { status: 500 }
+        );
+      }
+
+      const cleanMsg = forceClaude ? message.replace(/^!claude\s*/i, "") : message;
+
       const r = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
-          "x-api-key": process.env.ANTHROPIC_API_KEY || "",
+          "x-api-key": key,
           "content-type": "application/json",
-          // Pflicht-Header bei Anthropic:
           "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({
           model: "claude-3-5-sonnet-20240620",
           max_tokens: 800,
-          messages: [{ role: "user", content: message }],
+          messages: [{ role: "user", content: cleanMsg }],
         }),
       });
 
@@ -39,18 +53,27 @@ export async function POST(req: Request) {
       }
 
       const data = await r.json();
-      reply = data?.content?.[0]?.text || "Claude konnte nicht antworten.";
-      modelUsed = "claude";
+      reply = data?.content?.[0]?.text || "Claude gab keine Antwort zurück.";
     } else {
+      const key = process.env.OPENAI_API_KEY;
+      if (!key) {
+        return NextResponse.json(
+          { error: "OPENAI_API_KEY missing" },
+          { status: 500 }
+        );
+      }
+
+      const cleanMsg = forceGPT ? message.replace(/^!gpt\s*/i, "") : message;
+
       const r = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY || ""}`,
+          Authorization: `Bearer ${key}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           model: "gpt-4o-mini",
-          messages: [{ role: "user", content: message }],
+          messages: [{ role: "user", content: cleanMsg }],
         }),
       });
 
@@ -60,14 +83,12 @@ export async function POST(req: Request) {
       }
 
       const data = await r.json();
-      reply =
-        data?.choices?.[0]?.message?.content || "GPT konnte nicht antworten.";
-      modelUsed = "gpt";
+      reply = data?.choices?.[0]?.message?.content || "GPT gab keine Antwort zurück.";
     }
 
     return NextResponse.json({ reply, model: modelUsed });
   } catch (err: any) {
-    console.error(err);
+    console.error("CHAT API ERROR:", err?.message || err);
     return NextResponse.json(
       { error: "Server error", detail: String(err?.message || err) },
       { status: 500 }
