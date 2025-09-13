@@ -15,8 +15,8 @@ export default function JordyChatbot() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // ✅ richtig typisiert
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  // Ref für Auto-Scroll
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
@@ -28,7 +28,8 @@ export default function JordyChatbot() {
     scrollToBottom();
   }, [messages]);
 
-  const handleSendMessage = () => {
+  // ✅ jetzt echter API-Call
+  const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
 
     const userMessage: ChatMessage = {
@@ -41,21 +42,49 @@ export default function JordyChatbot() {
     setInputValue('');
     setIsLoading(true);
 
-    setTimeout(() => {
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userMessage.content }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`Server returned ${res.status}`);
+      }
+
+      const data = await res.json();
+
       setMessages((prev) => [
         ...prev,
         {
           id: Date.now() + 1,
           role: 'assistant',
-          content: `Jordy hat verstanden: "${userMessage.content}"`,
+          content:
+            data?.reply ??
+            'Es gab ein Problem beim Antworten. Bitte später nochmal versuchen.',
         },
       ]);
+    } catch (e) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          role: 'assistant',
+          content: '⚠️ Netzwerkfehler oder Server nicht erreichbar.',
+        },
+      ]);
+    } finally {
       setIsLoading(false);
-    }, 800);
+    }
   };
 
   return (
-    <div className={isDarkMode ? 'dark bg-gray-900 text-white' : 'bg-white text-gray-900'}>
+    <div
+      className={
+        isDarkMode ? 'dark bg-gray-900 text-white' : 'bg-white text-gray-900'
+      }
+    >
       {/* Header */}
       <header className="p-4 border-b flex justify-between items-center">
         <h1 className="font-bold">Jordy</h1>
@@ -71,7 +100,10 @@ export default function JordyChatbot() {
       <main className="flex flex-col h-screen max-w-2xl mx-auto">
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
           {messages.map((m) => (
-            <div key={m.id} className={m.role === 'user' ? 'text-right' : 'text-left'}>
+            <div
+              key={m.id}
+              className={m.role === 'user' ? 'text-right' : 'text-left'}
+            >
               <span
                 className={`inline-block px-3 py-2 rounded ${
                   m.role === 'user'
@@ -86,7 +118,9 @@ export default function JordyChatbot() {
 
           {/* Typing Indicator */}
           {isLoading && (
-            <div className="text-left text-gray-500 dark:text-gray-400">Jordy tippt…</div>
+            <div className="text-left text-gray-500 dark:text-gray-400">
+              Jordy tippt…
+            </div>
           )}
 
           <div ref={messagesEndRef} />
