@@ -9,7 +9,7 @@ type ChatMessage = {
   content: string;
 };
 
-const JordyChatbot: React.FC = () => {
+export default function JordyChatbot() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
 
@@ -25,7 +25,7 @@ const JordyChatbot: React.FC = () => {
     setMessages((prev) => [...prev, userMessage]);
     setInputValue('');
 
-    // kleine Demo-Antwort
+    // Demo-Antwort
     setTimeout(() => {
       setMessages((prev) => [
         ...prev,
@@ -42,10 +42,7 @@ const JordyChatbot: React.FC = () => {
     <div className="flex flex-col h-screen max-w-2xl mx-auto">
       <div className="flex-1 overflow-y-auto p-4 space-y-2">
         {messages.map((m) => (
-          <div
-            key={m.id}
-            className={m.role === 'user' ? 'text-right' : 'text-left'}
-          >
+          <div key={m.id} className={m.role === 'user' ? 'text-right' : 'text-left'}>
             <span
               className={`inline-block px-3 py-2 rounded ${
                 m.role === 'user'
@@ -77,6 +74,4 @@ const JordyChatbot: React.FC = () => {
       </div>
     </div>
   );
-};
-
-export default JordyChatbot;
+}
