@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Send } from 'lucide-react';
 
 type ChatMessage = {
@@ -12,15 +12,6 @@ type ChatMessage = {
 const JordyChatbot: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
-
-  // ✅ hier sagen wir TS explizit: Das ist ein div oder null
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [messages]);
 
   const handleSendMessage = () => {
     if (!inputValue.trim()) return;
@@ -66,8 +57,6 @@ const JordyChatbot: React.FC = () => {
             </span>
           </div>
         ))}
-        {/* ✅ das ist das Element, zu dem gescrollt wird */}
-        <div ref={messagesEndRef} />
       </div>
 
       <div className="p-4 border-t flex space-x-2">
