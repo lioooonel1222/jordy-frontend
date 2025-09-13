@@ -1,114 +1,91 @@
 'use client';
 
-import React, {
-  useState,
-  useRef,
-  useEffect,
-  KeyboardEvent,
-  ChangeEvent,
-  FormEvent,
-} from 'react';
-import { Send, Moon, Sun } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Send } from 'lucide-react';
 
 type ChatMessage = {
   id: number;
   role: 'user' | 'assistant';
   content: string;
-  timestamp: Date;
 };
 
 const JordyChatbot: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
-  const [isDarkMode, setIsDarkMode] = useState(false);
 
-  // ✅ Force Cast, kein "never" mehr möglich
-  const messagesEndRef = useRef<HTMLDivElement>(null!);
-
-  const scrollToBottom = () => {
-    if (messagesEndRef.current) {
-      (messagesEndRef.current as HTMLDivElement).scrollIntoView({
-        behavior: 'smooth',
-      });
-    }
-  };
+  // ✅ hier sagen wir TS explizit: Das ist ein div oder null
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    scrollToBottom();
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages]);
 
   const handleSendMessage = () => {
     if (!inputValue.trim()) return;
+
     const userMessage: ChatMessage = {
       id: Date.now(),
       role: 'user',
       content: inputValue,
-      timestamp: new Date(),
     };
+
     setMessages((prev) => [...prev, userMessage]);
     setInputValue('');
+
+    // kleine Demo-Antwort
     setTimeout(() => {
-      const botMessage: ChatMessage = {
-        id: Date.now() + 1,
-        role: 'assistant',
-        content: `Hi! Ich bin Jordy und habe verstanden: "${userMessage.content}"`,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, botMessage]);
-    }, 1000);
-  };
-
-  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
-
-  const autoResize = (e: FormEvent<HTMLTextAreaElement>) => {
-    const el = e.currentTarget;
-    el.style.height = 'auto';
-    el.style.height = `${el.scrollHeight}px`;
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          role: 'assistant',
+          content: `Jordy hat verstanden: "${userMessage.content}"`,
+        },
+      ]);
+    }, 800);
   };
 
   return (
-    <div className={isDarkMode ? 'dark bg-gray-900 text-white' : 'bg-white text-gray-900'}>
-      <header className="p-4 border-b flex justify-between items-center">
-        <h1 className="font-bold">Jordy</h1>
-        <button onClick={() => setIsDarkMode((d) => !d)}>
-          {isDarkMode ? <Sun /> : <Moon />}
-        </button>
-      </header>
-
-      <main className="max-w-2xl mx-auto h-screen flex flex-col">
-        <div className="flex-1 overflow-y-auto p-4 space-y-2">
-          {messages.map((m) => (
-            <div key={m.id} className={m.role === 'user' ? 'text-right' : 'text-left'}>
-              <span className="inline-block px-3 py-2 rounded bg-gray-200 dark:bg-gray-700">
-                {m.content}
-              </span>
-            </div>
-          ))}
-          <div ref={messagesEndRef} />
-        </div>
-
-        <div className="p-4 border-t flex space-x-2">
-          <textarea
-            value={inputValue}
-            onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setInputValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onInput={autoResize}
-            className="flex-1 border rounded p-2 resize-none"
-            placeholder="Schreibe eine Nachricht..."
-          />
-          <button
-            onClick={handleSendMessage}
-            className="px-4 py-2 bg-blue-600 text-white rounded"
+    <div className="flex flex-col h-screen max-w-2xl mx-auto">
+      <div className="flex-1 overflow-y-auto p-4 space-y-2">
+        {messages.map((m) => (
+          <div
+            key={m.id}
+            className={m.role === 'user' ? 'text-right' : 'text-left'}
           >
-            <Send />
-          </button>
-        </div>
-      </main>
+            <span
+              className={`inline-block px-3 py-2 rounded ${
+                m.role === 'user'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 text-black'
+              }`}
+            >
+              {m.content}
+            </span>
+          </div>
+        ))}
+        {/* ✅ das ist das Element, zu dem gescrollt wird */}
+        <div ref={messagesEndRef} />
+      </div>
+
+      <div className="p-4 border-t flex space-x-2">
+        <input
+          type="text"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+          className="flex-1 border rounded p-2"
+          placeholder="Schreibe eine Nachricht..."
+        />
+        <button
+          onClick={handleSendMessage}
+          className="px-4 py-2 bg-blue-600 text-white rounded"
+        >
+          <Send size={20} />
+        </button>
+      </div>
     </div>
   );
 };
