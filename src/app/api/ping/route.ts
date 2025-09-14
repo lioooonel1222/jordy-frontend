@@ -5,6 +5,5 @@ export async function GET() {
     ok: true,
     hasOpenAI: Boolean(process.env.OPENAI_API_KEY),
     hasAnthropic: Boolean(process.env.ANTHROPIC_API_KEY),
-    // keine Key-Werte anzeigen! nur Booleans
   });
 }
