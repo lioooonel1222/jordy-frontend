@@ -15,7 +15,7 @@ export default function JordyChatbot() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Ref für Auto-Scroll
+  // ✅ richtig typisiert
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const scrollToBottom = () => {
@@ -28,7 +28,6 @@ export default function JordyChatbot() {
     scrollToBottom();
   }, [messages]);
 
-  // ✅ jetzt echter API-Call
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
 
@@ -49,11 +48,13 @@ export default function JordyChatbot() {
         body: JSON.stringify({ message: userMessage.content }),
       });
 
-      if (!res.ok) {
-        throw new Error(`Server returned ${res.status}`);
-      }
-
       const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(
+          `Server returned ${res.status}: ${JSON.stringify(data)}`
+        );
+      }
 
       setMessages((prev) => [
         ...prev,
@@ -62,16 +63,17 @@ export default function JordyChatbot() {
           role: 'assistant',
           content:
             data?.reply ??
-            'Es gab ein Problem beim Antworten. Bitte später nochmal versuchen.',
+            `⚠️ Keine Antwort vom Modell. Fehler: ${JSON.stringify(data)}`,
         },
       ]);
-    } catch (e) {
+    } catch (e: any) {
+      console.error('Chat API Error:', e);
       setMessages((prev) => [
         ...prev,
         {
           id: Date.now() + 1,
           role: 'assistant',
-          content: '⚠️ Netzwerkfehler oder Server nicht erreichbar.',
+          content: '❌ Fehler: ' + e.message,
         },
       ]);
     } finally {
