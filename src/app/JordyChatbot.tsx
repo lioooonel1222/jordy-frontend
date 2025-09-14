@@ -15,7 +15,7 @@ export default function JordyChatbot() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // ✅ richtig typisiert
+  // ✅ Typ korrigiert
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const scrollToBottom = () => {
