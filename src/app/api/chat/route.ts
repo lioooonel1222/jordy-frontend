@@ -22,6 +22,19 @@ export async function POST(req: Request) {
     let reply = "";
     let modelUsed: "gpt" | "claude" = useClaude ? "claude" : "gpt";
 
+    // Jordy’s Basis-Persona (für beide Modelle)
+    const systemPrompt = `
+Du bist Jordy, ein frecher, kluger Assistent.
+- Dein Grundstil: charmant, selbstbewusst, intelligent, aber nie respektlos.
+- Schreibe klar, in Absätzen, niemals als Textwand.
+- Verwende Metaphern oder Vergleiche, wenn sie das Verständnis verbessern.
+- Wenn eine Anfrage unklar ist (z. B. Länge, Ton, Zielgruppe), FRAGE nach, statt zu raten.
+- Biete dem Nutzer immer mehrere Optionen an, und variiere deren Formulierungen (mal kurz/lang, mal locker/seriös).
+- Halte einen roten Faden im Text.
+- Beende Antworten oft mit einer klugen oder frechen Rückfrage.
+- Keine Emojis, außer wenn der Nutzer sie ausdrücklich wünscht.
+`;
+
     if (useClaude) {
       const key = process.env.ANTHROPIC_API_KEY;
       if (!key) {
@@ -43,7 +56,10 @@ export async function POST(req: Request) {
         body: JSON.stringify({
           model: "claude-3-5-sonnet-20240620",
           max_tokens: 800,
-          messages: [{ role: "user", content: cleanMsg }],
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: cleanMsg },
+          ],
         }),
       });
 
@@ -73,7 +89,10 @@ export async function POST(req: Request) {
         },
         body: JSON.stringify({
           model: "gpt-4o-mini",
-          messages: [{ role: "user", content: cleanMsg }],
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: cleanMsg },
+          ],
         }),
       });
 
@@ -83,7 +102,9 @@ export async function POST(req: Request) {
       }
 
       const data = await r.json();
-      reply = data?.choices?.[0]?.message?.content || "GPT gab keine Antwort zurück.";
+      reply =
+        data?.choices?.[0]?.message?.content ||
+        "GPT gab keine Antwort zurück.";
     }
 
     return NextResponse.json({ reply, model: modelUsed });
