@@ -13,7 +13,7 @@ export default function TypingIndicator() {
         <motion.path
           d="M0 10 Q 15 0, 30 10 T 60 10"
           fill="transparent"
-          stroke="url(#gradient)"
+          stroke="url(#black)"
           strokeWidth="2"
           initial={{ pathLength: 0 }}
           animate={{ pathLength: 1 }}
