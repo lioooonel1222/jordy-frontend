@@ -13,16 +13,15 @@ export async function POST(req: Request) {
     const forceGPT = message.trim().toLowerCase().startsWith("!gpt ");
     const forceClaude = message.trim().toLowerCase().startsWith("!claude ");
 
-    // Default-Heuristik (wenn nicht erzwungen):
+    // Heuristik (falls nicht explizit erzwungen)
     const heuristicClaude =
       message.length > 300 || /essay|aufsatz|analyse|bericht/i.test(message);
 
-    // Provider bestimmen
     const useClaude = forceClaude || (!forceGPT && heuristicClaude);
     let reply = "";
-    let modelUsed: "gpt" | "claude" = useClaude ? "claude" : "gpt";
+    const modelUsed: "gpt" | "claude" = useClaude ? "claude" : "gpt";
 
-    // Jordy’s Basis-Persona (für beide Modelle)
+    // Jordy Persona (für beide Provider)
     const systemPrompt = `
 Du bist Jordy, ein frecher, kluger Assistent.
 - Dein Grundstil: charmant, selbstbewusst, intelligent, aber nie respektlos.
@@ -35,7 +34,7 @@ Du bist Jordy, ein frecher, kluger Assistent.
 - Keine Emojis, außer wenn der Nutzer sie ausdrücklich wünscht.
 `;
 
-    // === CLAUDE (Anthropic) ===
+    // === Anthropic (Claude) ===
     if (useClaude) {
       const key = process.env.ANTHROPIC_API_KEY;
       if (!key) {
@@ -45,9 +44,7 @@ Du bist Jordy, ein frecher, kluger Assistent.
         );
       }
 
-      const cleanMsg = forceClaude
-        ? message.replace(/^!claude\s*/i, "")
-        : message;
+      const cleanMsg = forceClaude ? message.replace(/^!claude\s*/i, "") : message;
 
       const r = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
@@ -57,13 +54,13 @@ Du bist Jordy, ein frecher, kluger Assistent.
           "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({
-          model: "claude-3.5-sonnet-20240620", // ✅ richtiger Modellname
-          max_tokens: 800,
-          system: systemPrompt, // ✅ systemPrompt als Top-Level
+          model: "claude-3.5-sonnet-20240620", // ✔ korrekt (Punkt, kein Bindestrich)
+          max_tokens: 800,                     // ✔ Messages API Feldname
+          system: systemPrompt,                // ✔ Top-Level system
           messages: [
             {
               role: "user",
-              content: [{ type: "text", text: cleanMsg }], // ✅ content korrekt
+              content: [{ type: "text", text: cleanMsg }], // ✔ Content-Blocks
             },
           ],
         }),
@@ -75,10 +72,11 @@ Du bist Jordy, ein frecher, kluger Assistent.
       }
 
       const data = await r.json();
-      reply = data?.content?.[0]?.text || "Claude gab keine Antwort zurück.";
+      // Antwort aus Content-Blocks lesen
+      reply = data?.content?.[0]?.text ?? "Claude gab keine Antwort zurück.";
     }
 
-    // === GPT (OpenAI) ===
+    // === OpenAI (GPT) ===
     else {
       const key = process.env.OPENAI_API_KEY;
       if (!key) {
@@ -112,7 +110,7 @@ Du bist Jordy, ein frecher, kluger Assistent.
 
       const data = await r.json();
       reply =
-        data?.choices?.[0]?.message?.content ||
+        data?.choices?.[0]?.message?.content ??
         "GPT gab keine Antwort zurück.";
     }
 
